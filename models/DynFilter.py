@@ -2,30 +2,6 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import numpy as np
-import einops
-
-class Pos_weights(nn.Module):
-    def __init__(self, candidate_num):
-        super(Pos_weights, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(32 * 128 * 128, 64)
-        self.fc2 = nn.Linear(64, candidate_num) #之前寫成candidate_num=2，以為要輸出兩個權重值
-        self.softmax = nn.Softmax(dim=1) #跟上一行一起寫錯了
-        # self.sigmoid = nn.Sigmoid()
-        
-    def forward(self, x):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = x.view(-1, 32 * 128 * 128)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        x = self.softmax(x)        
-        # x = self.sigmoid(x)
-        
-        return x
-
 
 class dynFilter(nn.Module):
     def __init__(self, kernel_size=5, padding=2):
@@ -124,8 +100,6 @@ class DFNet(nn.Module):
 
         self.SFE_First = SFE(cfg['candidate_num'], self.fusion_Feat) 
         self.SFE_Second = SFE(self.fusion_Feat, self.fusion_Feat)
-        # self.SFE_weight = SFE(1, self.fusion_Feat) 
-        self.pos_weights = Pos_weights(self.candidate_num)
         Modules = []
 
         for i in range(self.RDB_Num):
@@ -135,54 +109,7 @@ class DFNet(nn.Module):
         self.Global_feature_fusion = GFF(self.RDB_Num * self.fusion_Feat, self.fusion_Feat)
         out_channel_num = 5 ** 2 * self.candidate_num
         self.Conv_Output = torch.nn.Conv2d(in_channels=self.fusion_Feat, out_channels=out_channel_num, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        #有position encoding且最後用cat就要改in_channels=self.fusion_Feat*2
-        #有position encoding但最後沒用cat用+就不用改 #240106 240104都這
-    #input就是DFnet_input
-        
-
-    # def forward(self, input): #pos weight
-    #     x = input[:,:-1] #[b, candidate_num, 512, 512] 
-    #     pos = input[:,-1:] #[b, 1, 512, 512]
-    #     weights = self.pos_weights(pos)
-    #     # print('weights_sigmoid', weights)
-        
-    #     # print('weights', weights.shape)
-    #     # # 原權重寫法
-    #     # weights = einops.repeat(weights, "b c ->b c h w", h=512, w=512)
-    #     # weighted = x * weights
-    #     # 更改權重寫法231217
-    #     forward_weights = weights
-    #     forward_weights = einops.repeat(forward_weights, "b c ->b c h w", h=512, w=512)
-    #     backward_weights = 1 - weights
-        
-    #     backward_weights = einops.repeat(backward_weights, "b c ->b c h w", h=512, w=512)
-    #     weighted = torch.add(x[:,0] * forward_weights, x[:,1] * backward_weights)
-        
-    #     F_1 = self.SFE_First(x)
-    #     F_2 = self.SFE_Second(F_1)  # [b, 16 ,512, 512]
-    #     F_weight = self.SFE_First(weighted)  # [b, 16 ,512, 512] #240110之前的版本
-    #     # F_weight = self.SFE_weight(weighted)
-    #     F_all = F_2 + F_weight
-        
-    #     for i in range(self.RDB_Num): #4
-    #         F_all = self.GRL[i](F_all)
-
-    #         if i == 0:
-    #             F_RDB_group = F_all
-
-    #         else:
-    #             F_RDB_group = torch.cat((F_RDB_group, F_all), dim=1)
-    #     #print('F_RDB_group', F_RDB_group.shape) #[b, 64 ,512, 512]
-        
-    #     F_GF = self.Global_feature_fusion(F_RDB_group)  #[b, 16 ,512, 512] 
-    #     # F_DF = torch.cat([F_GF, F_1], dim=1) #231227以前都把+寫成cat了[b, 32, 512, 512]
-    #     F_DF = torch.add(F_GF, F_1) #把原始candidate的feature加回來 [b, 16, 512, 512]
-
-    #     output = self.Conv_Output(F_DF) #[b, candidate_num*5*5, 512, 512]
-
-    #     return output #生成filter
     
-    #沒有position encoding 240104用這個
     def forward(self, input):
         input = input[:,:-1] #[b, candidate_num, 512, 512] 
         F_B1 = self.SFE_First(input)  # F_B1 == F_(-1)
@@ -202,4 +129,4 @@ class DFNet(nn.Module):
         F_GF = self.Global_feature_fusion(F_RDB_group)       
         F_DF = F_GF + F_B1
         output = self.Conv_Output(F_DF)
-        return output 
+        return output

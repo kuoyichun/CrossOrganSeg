@@ -1,7 +1,5 @@
 import torch
-import einops
 from torch import nn
-from hausdorff import hausdorff_distance
 
 class Charbonnier_loss(nn.Module):
     def __init__(self):
@@ -23,55 +21,7 @@ class SSIM_loss(nn.Module):
     def forward(self, X, Y):
         return 1 - self.SSIM(X, Y)
 
-class GDL_loss(nn.Module):
-    """
-    Gradient Difference Loss
-    Image gradient difference loss as defined by Mathieu et al. (https://arxiv.org/abs/1511.05440).
-    """
-    def __init__(self):
-        super().__init__()
-        self.alpha = 1
-        
-    def forward(self, X, Y):
-        X_H_variance = torch.abs(X[:, :, :-1, :] - X[:, :, 1:, :])
-        X_W_variance = torch.abs(X[:, :, :, :-1] - X[:, :, :, 1:])
-        Y_H_variance = torch.abs(Y[:, :, :-1, :] - Y[:, :, 1:, :])
-        Y_W_variance = torch.abs(Y[:, :, :, :-1] - Y[:, :, :, 1:])
-        H_grad_loss = torch.abs(X_H_variance - Y_H_variance)
-        W_grad_loss = torch.abs(X_W_variance - Y_W_variance)
-        loss = torch.mean(torch.sum(H_grad_loss ** self.alpha)) + torch.mean(torch.sum(W_grad_loss ** self.alpha))
-        return loss
 
-class PositionEncoding():
-    def __init__(self, shape):
-        self.shape = shape
-        # print(self.shape)
-        C, _ = shape
-        d_hid = C
-        self.angle = [torch.pow(torch.tensor(10000), 2 * hid_j / d_hid) for hid_j in range(d_hid//2)]
-        
-    def encode(self, th):
-        code = []
-        for angle in self.angle:
-            code.append(torch.sin(th * angle))
-            code.append(torch.cos(th * angle))
-        code = torch.cuda.FloatTensor(code) 
-        # print('code', code)   
-        code = einops.repeat(code, "h ->c h w", c=1, w=512)
-
-        return code
-        
-    def __call__(self, th, mode):
-        if mode == 'test': #沒batch
-            y = self.encode(th)
-        else:
-            b = th.shape[0]
-            y = torch.zeros((b, 1, 512, 512))
-            for i, b_t in enumerate(th): 
-                y[i] = self.encode(b_t)
-        return y
-
-from torch.autograd import Variable
 def warp(x, flo):
     """
     warp an image/tensor (im2) back to im1, according to the optical flow
@@ -168,9 +118,6 @@ class MeasureMetric(pl.LightningModule):
         if 'DICE' in self.metrics:
             d = dice(pred, target)
             self.DICE.update(d)
-        if 'HD' in self.metrics:
-            hd = hausdorff_distance(pred, target)
-            self.HD.update(hd)
             
 
     def compute(self):
@@ -188,7 +135,6 @@ class MeasureMetric(pl.LightningModule):
             meanmetric.reset()
     
     
-
 
 def dice(pred, target):
     smooth = 1e-5

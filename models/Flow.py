@@ -47,14 +47,10 @@ class Model(nn.Module):
                     layer = NetOutSingleBlock(op_dim, 2)
                 else:
                     layer = NetInBlock(op_dim, o_dim, 2)
-                # setattr(self, 'out_01{}_{}'.format(i, j), layer)
                 setattr(self, 'out_10{}_{}'.format(i, j), layer)
         
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        # residual layer
-        #for i in range(1, conv_layers+1):
-        #    layer = nn.ConvTranspose2d(2, 2, kernel_size=2, stride=2)
-        #    setattr(self, 'residual_conv_{}'.format(i), layer)
+   
         
     def forward(self, img0, img1):
         combined = torch.cat([img1, img0], dim=1)
@@ -73,19 +69,6 @@ class Model(nn.Module):
             d = layer(ds[i-1])
             fs.append(d)
 
-        # flows01 = []
-        # for i in range(1, self.conv_layers+1):
-        #     layer = getattr(self, 'up_block_01{}'.format(i))
-        #     if i == 1:
-        #         d = layer(fs[-i], fs[-i-1])
-        #     else:
-        #         d = layer(d, fs[-i-1])
-
-        #     out = d
-        #     for j in range(1, self.out_layers+1):
-        #         layer = getattr(self, 'out_01{}_{}'.format(i, j))
-        #         out = layer(out)
-        #     flows01.append(out)
 
         flows10 = []
         for i in range(1, self.conv_layers+1):
@@ -94,12 +77,10 @@ class Model(nn.Module):
                 d = layer(fs[-i], fs[-i-1])
             else:
                 d = layer(d, fs[-i-1])
-            #residual_layer = getattr(self, 'residual_conv_{}'.format(i))
             out = d
             for j in range(1, self.out_layers+1):
                 layer = getattr(self, 'out_10{}_{}'.format(i, j))
                 out = layer(out)
-            # flows10.append(out)
 
             if i == 1:
                flows10.append(out)
@@ -108,15 +89,12 @@ class Model(nn.Module):
                flows10.append(torch.add(residual, out))
             p_out = out
 
-        # return flows01, flows10
         return flows10
 
         
         
 if __name__ == '__main__':
     input = torch.randn(1, 1, 512, 512)
-    #after 1217:'conv_dim': 32
-    #原本是:'conv_dim':16
     model = Model(cfg={'conv_dim': 16, 'conv_layers':4, 'TF_layers':8, 'out_layers': 3, 'resolution':512})
     model(input, input)
 

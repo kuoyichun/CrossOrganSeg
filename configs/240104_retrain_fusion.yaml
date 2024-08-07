@@ -1,6 +1,5 @@
-# model_name: '240104_retrain_fusion_residual'
 model_name: '240104_CHAOS_Liver_fusion_residual' #不是retrain，是從頭訓練
-description: 'fusion_org_L1loss_residual_neg_freeze_New_warp_seg_nopos' #改好warp_seg，不要直接.where過濾，沒做position_encoding
+description: 'fusion_org_L1loss_residual_neg_freeze_New_warp_seg_nopos' 
 
 # training setting
 epochs: 200

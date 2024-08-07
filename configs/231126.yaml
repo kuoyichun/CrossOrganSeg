@@ -1,5 +1,5 @@
 model_name: '231126'
-description: 'only predict one direction flow, augment data with rotate'
+description: 'only predict one direction flow'
 
 # training setting
 epochs: 30
