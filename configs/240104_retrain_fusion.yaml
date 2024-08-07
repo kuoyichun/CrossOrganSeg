@@ -1,0 +1,34 @@
+# model_name: '240104_retrain_fusion_residual'
+model_name: '240104_CHAOS_Liver_fusion_residual' #不是retrain，是從頭訓練
+description: 'fusion_org_L1loss_residual_neg_freeze_New_warp_seg_nopos' #改好warp_seg，不要直接.where過濾，沒做position_encoding
+
+# training setting
+epochs: 200
+batch_size: 24
+lr: 0.0001
+num_workers: 12
+
+# I/O
+# Input
+folder: '/root/yichun/Subtask1_preprocessed'
+list_path: '/root/yichun/project/data/testList_CHAOS.txt' #改成用CHAOS train
+test_list_path: '/root/yichun/project/data/testList_label1.txt'
+flow_ckpt_path: '/root/yichun/project/epoch=29-step=51510.ckpt'
+fusion_ckpt_retrain_path: '/root/yichun/project/lightning_logs/240104_fusion_residual/checkpoints/epoch=78-step=206980.ckpt'
+save_folder: '/root/yichun/project/outputs'
+
+# Output
+show_num: 4
+show_step: 10
+
+# model setting
+resolution: 512
+fusion_Feat: 16
+RDB_Num: 4
+Growth_rate: 16
+Conv_Num: 6
+candidate_num: 2
+
+# python3 main.py --train --yaml_path /root/yichun/project/configs/240104_retrain_fusion.yaml --task fusion_org
+# python3 main.py --test --yaml_path /root/yichun/project/configs/240104_retrain_fusion.yaml --ckpt_path /root/yichun/project/lightning_logs/240104_CHAOS_Liver_fusion_residual/checkpoints/epoch=119-step=35160_fisrt.ckpt --task fusion_org --patient train_0001_0000
+# python3 main.py --test_auto --yaml_path /root/yichun/project/configs/240104_retrain_fusion.yaml --ckpt_path /root/yichun/project/lightning_logs/240104_fusion_residual/epoch=121-step=319640.ckpt --task fusion_org --patient train_0001_0000 --label 1 --list_path /root/yichun/project/data/testList_label1.txt

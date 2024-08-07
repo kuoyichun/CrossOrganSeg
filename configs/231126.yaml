@@ -1,0 +1,25 @@
+model_name: '231126'
+description: 'only predict one direction flow, augment data with rotate'
+
+# training setting
+epochs: 30
+batch_size: 12
+lr: 0.001
+num_workers: 12
+
+# I/O
+# Input
+folder: '/root/yichun/Subtask1_preprocessed'
+list_path: '/root/yichun/project/data/trainList.txt'
+val_list_path: '/root/yichun/project/data/testList.txt'
+test_list_path: '/root/yichun/project/data/testList.txt'
+# Output
+show_num: 4
+show_step: 10
+
+# model setting
+resolution: 512
+conv_layers: 4
+TF_layers: 8
+out_layers: 3
+conv_dim: 16
